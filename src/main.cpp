@@ -36,7 +36,7 @@ static void serveStaticContent(HttpServer *server, path rootPath, string ext) {
 
 static ServeFunction serveDefault(path rootPath) {
     return [rootPath](ResponsePtr res, RequestPtr req) {
-        auto resPath = canonical(rootPath / req->path);
+        auto resPath = rootPath / req->path;
         if (distance(rootPath.begin(), rootPath.end()) > distance(resPath.begin(), resPath.end()) ||
                 !equal(rootPath.begin(), rootPath.end(), resPath.begin())) {
             res->write(StatusCode::client_error_bad_request, "invalid access path");

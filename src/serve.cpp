@@ -30,11 +30,9 @@ Expected<bool> serveResource(const ResponsePtr &res, string resPath) {
     Header header;
     auto ifs = make_shared<ifstream>();
     ifs->open(resPath, ifstream::in | ios::binary | ios::ate);
-    cout << resPath << endl;
     if (!*ifs) {
         return {"could not read file: " + resPath};
     }
-    cout << "xd" << endl;
     auto len = ifs->tellg();
     ifs->seekg(0, ios::beg);
     header.emplace("Content-Length", to_string(len));
