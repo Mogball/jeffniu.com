@@ -34,6 +34,12 @@ static void serveStaticContent(HttpServer *server, path rootPath, string ext) {
     };
 }
 
+static ServeFunction hardRedirect(HttpServer &server, string rel) {
+    return [&server, rel](ResponsePtr res, RequestPtr req) {
+        server.resource[rel]["GET"](res, req);
+    };
+}
+
 static ServeFunction serveDefault(path rootPath) {
     return [rootPath](ResponsePtr res, RequestPtr req) {
         auto resPath = rootPath / req->path;
@@ -65,6 +71,7 @@ int main() {
     serveStaticContent(&server, rootPath, "js");
     serveStaticContent(&server, rootPath, "jpeg");
     server.resource["/"]["GET"] = serveResource(htmlPath / "index.html");
+    server.resource["^(/[A-Za-z]{5}){1,}(/)?$"]["GET"] = hardRedirect(server, "/");
     server.default_resource["GET"] = serveDefault(rootPath);
     server.on_error = [](RequestPtr, const SimpleWeb::error_code &) {};
 
