@@ -1,5 +1,6 @@
 #include "types.hpp"
 #include "serve.hpp"
+#include "debug.hpp"
 #include <client_http.hpp>
 #include <server_http.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -10,6 +11,7 @@
 #include <fstream>
 
 using namespace std;
+using namespace boost;
 using namespace boost::filesystem;
 using namespace SimpleWeb;
 
@@ -25,10 +27,12 @@ static ServeFunction serveResource(path resPath) {
 }
 
 static void serveStaticContent(HttpServer *server, path rootPath, string ext) {
-    server->resource["^/([0-9A-Za-z_]*)\\." + ext]["GET"] = [rootPath, ext](ResponsePtr res, RequestPtr req) {
+    server->resource["^/([0-9A-Za-z-_]*)\\." + ext]["GET"] = [rootPath, ext](ResponsePtr res, RequestPtr req) {
         auto file = req->path_match[1].str() + "." + ext;
-        auto ret = serveResource(res, (rootPath / ext / file).string());
+        auto resPath = rootPath / ext / file;
+        auto ret = serveResource(res, resPath.string());
         if (ret.hasError()) {
+            DEBUG_PRINT(format("ERROR - Static content 404 [%1%]: %2%\n") % ext % resPath);
             res->write(StatusCode::client_error_not_found, ret.getError());
         }
     };
@@ -36,7 +40,17 @@ static void serveStaticContent(HttpServer *server, path rootPath, string ext) {
 
 static ServeFunction hardRedirect(HttpServer &server, string rel) {
     return [&server, rel](ResponsePtr res, RequestPtr req) {
+        DEBUG_PRINT(format("REDIRECT: %1% -> %2%\n") % req->path % rel);
         server.resource[rel]["GET"](res, req);
+    };
+}
+
+static ServeFunction redirect(string rel) {
+    return [rel](ResponsePtr res, RequestPtr req) {
+        DEBUG_PRINT(format("REDIRECT: %1% -> %2%\n") % req->path % rel);
+        Header header;
+        header.emplace("Location", "/");
+        res->write(StatusCode::redirection_permanent_redirect, header);
     };
 }
 
@@ -54,27 +68,49 @@ static ServeFunction serveDefault(path rootPath) {
 
         auto ret = serveResource(res, resPath.string());
         if (ret.hasError()) {
+            DEBUG_PRINT(format("ERROR - Path 404: %1%\n") % resPath);
             res->write(StatusCode::client_error_not_found, ret.getError());
         }
     };
 }
+
+#ifdef TODO_WIP
+static ServeFunction serveTodo(path rootPath) {
+    return [rootPath](ResponsePtr res, RequestPtr req) {
+        DEBUG_PRINT(format("TODO Request: %1%\n") % req->path);
+        auto ret = serveResource(res, (rootPath / "html" / "todo.html").string());
+        if (ret.hasError()) {
+            res->write(StatusCode::client_error_not_found, ret.getError());
+        }
+    };
+}
+#endif
 
 int main() {
     auto rootPath = canonical("web");
     auto htmlPath = rootPath / "html";
 
     HttpServer server;
-    server.config.port = 8080;
+    server.config.port = SERVER_PORT;
 
-    serveStaticContent(&server, rootPath, "html");
+    DEBUG_PRINT(format("Starting webserver on port %1%\n") % SERVER_PORT);
+
     serveStaticContent(&server, rootPath, "css");
     serveStaticContent(&server, rootPath, "js");
-    serveStaticContent(&server, rootPath, "jpeg");
-    server.resource["/"]["GET"] = serveResource(htmlPath / "index.html");
-    server.resource["^(/[A-Za-z]{5}){1,}(/)?$"]["GET"] = hardRedirect(server, "/");
+    serveStaticContent(&server, rootPath, "jpg");
+    serveStaticContent(&server, rootPath, "png");
+    serveStaticContent(&server, rootPath, "ico");
+    server.resource["^(/[A-Za-z]{5}){1,}(/)?$"]["GET"] = redirect("/"); //hardRedirect(server, "/");
     server.default_resource["GET"] = serveDefault(rootPath);
-    server.on_error = [](RequestPtr, const SimpleWeb::error_code &) {};
 
+#ifndef TODO_WIP
+    serveStaticContent(&server, rootPath, "html");
+    server.resource["/"]["GET"] = serveResource(htmlPath / "index.html");
+#else
+    server.resource["/"]["GET"] = serveResource(htmlPath / "todo.html");
+#endif
+
+    server.on_error = [](RequestPtr, const SimpleWeb::error_code &) {};
     thread server_thread([&server]() { server.start(); });
     server_thread.join();
 }
