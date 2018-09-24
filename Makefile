@@ -10,7 +10,7 @@ $(BIN)/Makefile: $(BIN) CMakeLists.txt
 $(BIN):
 	mkdir -p $(BIN)
 
-.PHONY: run
+.PHONY: run port
 
 run:
 	@$(BIN)/$(EXE)

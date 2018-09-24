@@ -39,7 +39,8 @@ static ServeFunction serveDefault(path rootPath) {
         auto resPath = canonical(rootPath / req->path);
         if (distance(rootPath.begin(), rootPath.end()) > distance(resPath.begin(), resPath.end()) ||
                 !equal(rootPath.begin(), rootPath.end(), resPath.begin())) {
-            throw invalid_argument("path must be within root path");
+            res->write(StatusCode::client_error_bad_request, "invalid access path");
+            return;
         }
         if (is_directory(resPath)) {
             resPath /= "index.html";

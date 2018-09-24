@@ -15,3 +15,8 @@ typedef SimpleWeb::CaseInsensitiveMultimap Header;
 
 typedef std::shared_ptr<HttpServer::Response> ResponsePtr;
 typedef std::shared_ptr<HttpServer::Request>  RequestPtr;
+
+extern template class SimpleWeb::Server<SimpleWeb::HTTP>;
+extern template class SimpleWeb::Client<SimpleWeb::HTTP>;
+extern template class SimpleWeb::Server<SimpleWeb::HTTPS>;
+extern template class SimpleWeb::Client<SimpleWeb::HTTPS>;
