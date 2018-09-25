@@ -9,6 +9,41 @@
           <ul>
             <li><a href="index.html"><span><small>01</small>Home</span></a></li>
             <li class="active"><a href="about.html"><span><small>02</small>Resume</span></a></li>
+
+            {{if {{.var}} eq hello}}
+            wrong
+            {{else}}
+            right
+            {{endif}}
+
+            {{if 56 gt 21}}
+            right
+            {{endif}}
+
+            {{if 56 ge 21}}
+            right
+            {{else}}
+            wrong
+            {{endif}}
+
+            {{if {{.var}} ne hello}}
+            right
+            {{else}}
+            wrong
+            {{endif}}
+
+            {{if 123 le 444}}
+            right
+            {{else}}
+            wrong
+            {{endif}}
+
+            {{if 123 lt 3}}
+            wrong
+            {{else}}
+            right
+            {{endif}}
+
             <li><a href="portfolio.html"><span><small>03</small>Portfolio</span></a></li>
           </ul>
         </div>
