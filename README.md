@@ -2,6 +2,11 @@
 
 `jeffniu.com`
 
+## Features
+
+Has a custom basic request cache manager and template engine, supporting
+for loops, if/else constructs, key-value pairs, and including other files.
+
 ## Requirements
 
 ```bash
