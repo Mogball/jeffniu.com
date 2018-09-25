@@ -16,13 +16,9 @@ public:
             m_ret(std::forward<Ret>(ret)),
             m_hasError(false) {}
 
-    Expected(std::string fmt, ...) :
-            m_hasError(true) {
-        va_list args;
-        va_start(args, fmt);
-        m_error = fmt::vsprintf(fmt, args);
-        va_end(args);
-    }
+    Expected(bool hasError, std::string msg):
+            m_hasError(hasError),
+            m_error(move(msg)) {}
 
     bool hasError() const {
         return m_hasError;
