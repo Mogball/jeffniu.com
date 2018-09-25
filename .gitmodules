@@ -1,3 +1,6 @@
 [submodule "webserver"]
 	path = webserver
 	url = https://github.com/Mogball/webserver
+[submodule "cotire"]
+	path = cotire
+	url = https://github.com/sakra/cotire
