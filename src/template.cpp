@@ -252,7 +252,7 @@ Expected<std::string> parseControls(const std::string &tmpl) {
 }
 
 Expected<std::string> processTemplate(const string &res, const map<string, string> &kv) {
-    auto root = canonical("web") / "template";
+    auto root = canonical("assets") / "template";
     auto tmpl = readWholeFile(res);
     if (true != get<1>(tmpl)) {
         return {true, "Template error: file not found: " + res};

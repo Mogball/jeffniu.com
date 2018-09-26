@@ -4,3 +4,6 @@
 [submodule "cotire"]
 	path = cotire
 	url = https://github.com/sakra/cotire
+[submodule "assets"]
+	path = assets
+	url = https://github.com/mogball/jeffniu.com-assets

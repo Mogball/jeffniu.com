@@ -88,7 +88,7 @@ static ServeFunction serveTodo(ResourceCache *cache, path rootPath) {
 #endif
 
 int main() {
-    auto rootPath = canonical("web");
+    auto rootPath = canonical("assets");
     auto htmlPath = rootPath / "html";
 
     HttpServer server;
