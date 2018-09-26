@@ -9,6 +9,12 @@
 
 using namespace std;
 
+enum MimeType {
+    JS,
+    CSS,
+    HTML
+};
+
 static constexpr long NUM_RESOURCES = 128;
 static constexpr long BUFFER_SIZE = 1 << 17;
 static constexpr long CACHE_TIMEOUT = 60 * 60 * 1000; // 60 minutes
@@ -18,6 +24,27 @@ static long long getTimestamp() {
     return duration_cast<milliseconds>(
             system_clock::now().time_since_epoch()
     ).count();
+}
+
+static vector<string> s_mimeExts = {"js", "css", "html"};
+
+static string getMimeType(const string &resPath) {
+    size_t loc = resPath.rfind('.');
+    if (string::npos == loc) {
+        return "text/plain";
+    }
+    ++loc;
+    string ext = resPath.substr(loc, resPath.size() - loc);
+    switch (find(s_mimeExts.begin(), s_mimeExts.end(), ext) - s_mimeExts.begin()) {
+        case JS:
+            return "text/javascript";
+        case CSS:
+            return "text/css";
+        case HTML:
+            return "text/html";
+        default:
+            return "text/plain";
+    }
 }
 
 Resource::Resource(Timestamp createTime, Timestamp duration, size_t size):
@@ -31,6 +58,7 @@ ResourceCache::ResourceCache():
 Expected<bool> ResourceCache::serveResource(const ResponsePtr &res, string resPath) {
     Resource::Timestamp curTime = getTimestamp();
     Header header;
+    header.emplace("Content-Type", getMimeType(resPath));
 
     auto it = m_cache.find(resPath);
     if (it != m_cache.end()) {

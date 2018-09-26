@@ -21,8 +21,8 @@ static string ELSE_MATCH = "{{else}}";
 static string ENDIF_MATCH = "{{endif}}";
 static string END_MATCH = "}}";
 
-static tuple<string, bool> readWholeFile(const path &root, const string &name) {
-    ifstream ifs((root / name).string());
+static tuple<string, bool> readWholeFile(string res) {
+    ifstream ifs(res);
     if (!ifs) {
         return forward_as_tuple("", true);
     }
@@ -76,7 +76,7 @@ static Expected<bool> recursiveParseIncludes(
         start = end + END_MATCH.size();
         loc += INCLUDE_MATCH.size() + 1;
         string included = tmpl.substr(loc, end - loc);
-        auto data = readWholeFile(root, included);
+        auto data = readWholeFile((root / included).string());
         if (true == get<1>(data)) {
             return {true, "Template error: file not found: " + (root / included).string()};
         }
@@ -249,4 +249,25 @@ Expected<std::string> parseControls(const std::string &tmpl) {
         pCur += view.size();
     }
     return data;
+}
+
+Expected<std::string> processTemplate(const string &res, const map<string, string> &kv) {
+    auto root = canonical("template");
+    auto tmpl = readWholeFile(res);
+    if (true != get<1>(tmpl)) {
+        return {true, "Template error: file not found: " + res};
+    }
+    auto ret = parseIncludes(get<0>(tmpl), root);
+    if (ret.hasError()) {
+        return {true, "Template include error: " + ret.getError()};
+    }
+    ret = parseReplaces(ret.get(), kv);
+    if (ret.hasError()) {
+        return {true, "Template substitute error: " + ret.getError()};
+    }
+    ret = parseControls(ret.get());
+    if (ret.hasError()) {
+        return {true, "Template controls error: " + ret.getError()};
+    }
+    return ret;
 }

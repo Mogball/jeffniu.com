@@ -10,7 +10,7 @@ for loops, if/else constructs, key-value pairs, and including other files.
 ## Requirements
 
 ```bash
-sudo apt install libboost-all-dev
+sudo apt install libboost-all-dev libssl-dev
 ```
 
 ## Get Current Port

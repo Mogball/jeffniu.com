@@ -88,37 +88,6 @@ static ServeFunction serveTodo(ResourceCache *cache, path rootPath) {
 #endif
 
 int main() {
-    auto tmplPath = canonical("template");
-    string tmpl =
-        "<head>\n"
-        "  <meta/>\n"
-        "</head>\n"
-        "<body>\n"
-        "  {{include nav.tmpl.html}}\n"
-        "  <p>some hello stuff</p>\n"
-        "  {{include footer.tmpl.html}}\n"
-        "</body>\n";
-    map<string, string> kv;
-    kv.emplace("var", "moshi");
-    auto ret = parseIncludes(tmpl, tmplPath);
-    if (ret.hasError()) {
-        cerr << ret.getError() << endl;
-        return -1;
-    }
-    ret = parseReplaces(ret.get(), kv);
-    if (ret.hasError()) {
-        cerr << ret.getError() << endl;
-        return -1;
-    }
-    ret = parseControls(ret.get());
-    if (ret.hasError()) {
-        cerr << ret.getError() << endl;
-        return -1;
-    }
-
-    cout << ret.get() << endl;
-    return 0;
-
     auto rootPath = canonical("web");
     auto htmlPath = rootPath / "html";
 

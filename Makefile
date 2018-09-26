@@ -8,7 +8,7 @@ $(BIN)/Makefile: $(BIN) CMakeLists.txt
 	@cd $(BIN) && cmake ../
 
 $(BIN):
-	mkdir -p $(BIN)
+	@mkdir -p $(BIN)
 
 .PHONY: run port
 
