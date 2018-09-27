@@ -2,6 +2,8 @@
 #include "serve.hpp"
 #include "types.hpp"
 #include "error.hpp"
+#include "strutil.hpp"
+#include "template.hpp"
 #include <boost/filesystem.hpp>
 #include <vector>
 #include <fstream>
@@ -50,12 +52,15 @@ static string getMimeType(const string &resPath) {
 Resource::Resource(Timestamp createTime, Timestamp duration, size_t size):
     m_createTime(createTime),
     m_duration(duration),
-    m_data(size) {}
+    m_data(size, 0) {}
 
 ResourceCache::ResourceCache():
     m_cache(NUM_RESOURCES * 2) {}
 
-Expected<bool> ResourceCache::serveResource(const ResponsePtr &res, string resPath) {
+Expected<bool> ResourceCache::serveResource(
+        const ResponsePtr &res,
+        string resPath,
+        const map<string, string> &kv) {
     Resource::Timestamp curTime = getTimestamp();
     Header header;
     header.emplace("Content-Type", getMimeType(resPath));
@@ -84,18 +89,32 @@ Expected<bool> ResourceCache::serveResource(const ResponsePtr &res, string resPa
     ifs.seekg(0, ios::beg);
 
     Resource newData(curTime, CACHE_TIMEOUT, numBytes);
-    auto pVal = m_cache.emplace(move(resPath), move(newData));
-    assert(true == pVal.second);
-    assert(0 == newData.m_data.capacity());
-
     header.emplace("Content-Length", to_string(numBytes));
     res->write(header);
 
-    Resource::Buffer &bufferRef = pVal.first->second.m_data;
-    streamsize bytesRead = ifs.read(bufferRef.data(), bufferRef.capacity()).gcount();
-
+    streamsize bytesRead = ifs.read(
+        &newData.m_data[0],
+        newData.m_data.capacity()
+    ).gcount();
     assert(numBytes == bytesRead);
-    assert(numBytes == bufferRef.size());
+    assert(numBytes == newData.m_data.size());
+
+    if (ends_with(resPath, "tmpl.html")) {
+        DEBUG_PRINT(format("Processing template: %1%\n") % resPath);
+        auto ret = processTemplate(newData.m_data, kv);
+        if (!get<1>(ret).empty()) {
+            return {true, get<1>(ret)};
+        }
+        string data = move(get<0>(ret));
+        assert(0 == get<0>(ret).size());
+        newData.m_data = data;
+    }
+
+    auto pVal = m_cache.emplace(resPath, move(newData));
+    assert(true == pVal.second);
+    assert(0 == newData.m_data.size());
+    Resource::Buffer &bufferRef = pVal.first->second.m_data;
+
     if (bytesRead > 0) {
         readAndSend(res, bufferRef.begin(), bufferRef.end());
     }

@@ -3,7 +3,6 @@
 #include "types.hpp"
 #include "error.hpp"
 #include <unordered_map>
-#include <vector>
 #include <string>
 
 static_assert(sizeof(long long) >= 8, "Expected sizeof(long long) to be 64 bits");
@@ -14,7 +13,7 @@ class Resource {
     friend class ResourceCache;
 
     typedef long long Timestamp;
-    typedef std::vector<char> Buffer;
+    typedef std::string Buffer;
     typedef Buffer::iterator BufferIt;
 
     Resource(Timestamp createTime, Timestamp duration, std::size_t size);
@@ -28,7 +27,10 @@ class ResourceCache {
 public:
     ResourceCache();
 
-    Expected<bool> serveResource(const ResponsePtr &res, std::string resPath);
+    Expected<bool> serveResource(
+            const ResponsePtr &res,
+            std::string resPath,
+            const std::map<std::string, std::string> &kv);
 
     ResourceCache(const ResourceCache &) = delete;
     ResourceCache &operator=(const ResourceCache &) = delete;

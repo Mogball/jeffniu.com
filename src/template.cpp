@@ -251,23 +251,21 @@ Expected<std::string> parseControls(const std::string &tmpl) {
     return data;
 }
 
-Expected<std::string> processTemplate(const string &res, const map<string, string> &kv) {
+tuple<string, string> processTemplate(const string &tmpl, const map<string, string> &kv) {
     auto root = canonical("assets") / "template";
-    auto tmpl = readWholeFile(res);
-    if (true != get<1>(tmpl)) {
-        return {true, "Template error: file not found: " + res};
-    }
-    auto ret = parseIncludes(get<0>(tmpl), root);
+    auto ret = parseIncludes(tmpl, root);
     if (ret.hasError()) {
-        return {true, "Template include error: " + ret.getError()};
+        return make_tuple("", "Template include error: " + ret.getError());
     }
     ret = parseReplaces(ret.get(), kv);
     if (ret.hasError()) {
-        return {true, "Template substitute error: " + ret.getError()};
+        return make_tuple("", "Template substitute error: " + ret.getError());
     }
     ret = parseControls(ret.get());
     if (ret.hasError()) {
-        return {true, "Template controls error: " + ret.getError()};
+        return make_tuple("", "Template controls error: " + ret.getError());
     }
-    return ret;
+    auto tup = make_tuple(move(ret.get()), "");
+    assert(0 == ret.get().size());
+    return tup;
 }

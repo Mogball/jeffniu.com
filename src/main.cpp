@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <algorithm>
 #include <vector>
+#include <map>
 #include <fstream>
 
 using namespace std;
@@ -18,9 +19,15 @@ using namespace SimpleWeb;
 
 typedef function<void(ResponsePtr, RequestPtr)> ServeFunction;
 
-static ServeFunction serveContent(ResourceCache *cache, path resPath) {
-    return [cache, resPath](ResponsePtr res, RequestPtr req) {
-        auto ret = cache->serveResource(res, resPath.string());
+static ServeFunction serveContent(
+        ResourceCache *cache,
+        const map<string, string> &defaultConfig,
+        path resPath,
+        map<string, string> &&config) {
+    map<string, string> kv(config);
+    kv.insert(defaultConfig.begin(), defaultConfig.end());
+    return [kv, cache, resPath](ResponsePtr res, RequestPtr req) {
+        auto ret = cache->serveResource(res, resPath.string(), kv);
         if (ret.hasError()) {
             res->write(StatusCode::client_error_not_found, ret.getError());
         }
@@ -28,10 +35,11 @@ static ServeFunction serveContent(ResourceCache *cache, path resPath) {
 }
 
 static void serveStaticContent(HttpServer *server, ResourceCache *cache, path rootPath, string ext) {
+    static const map<string, string> kv;
     server->resource["^/([0-9A-Za-z-_]*)\\." + ext]["GET"] = [cache, rootPath, ext](ResponsePtr res, RequestPtr req) {
         auto file = req->path_match[1].str() + "." + ext;
         auto resPath = rootPath / ext / file;
-        auto ret = cache->serveResource(res, resPath.string());
+        auto ret = cache->serveResource(res, resPath.string(), kv);
         if (ret.hasError()) {
             DEBUG_PRINT(format("ERROR - Static content 404 [%1%]: %2%\n") % ext % resPath);
             res->write(StatusCode::client_error_not_found, ret.getError());
@@ -56,6 +64,7 @@ static ServeFunction redirect(string rel) {
 }
 
 static ServeFunction serveDefault(ResourceCache *cache, path rootPath) {
+    static const map<string, string> kv;
     return [cache, rootPath](ResponsePtr res, RequestPtr req) {
         auto resPath = rootPath / req->path;
         if (distance(rootPath.begin(), rootPath.end()) > distance(resPath.begin(), resPath.end()) ||
@@ -67,7 +76,7 @@ static ServeFunction serveDefault(ResourceCache *cache, path rootPath) {
             resPath /= "index.html";
         }
 
-        auto ret = cache->serveResource(res, resPath.string());
+        auto ret = cache->serveResource(res, resPath.string(), kv);
         if (ret.hasError()) {
             DEBUG_PRINT(format("ERROR - Path 404: %1%\n") % resPath);
             res->write(StatusCode::client_error_not_found, ret.getError());
@@ -75,21 +84,10 @@ static ServeFunction serveDefault(ResourceCache *cache, path rootPath) {
     };
 }
 
-#ifdef TODO_WIP
-static ServeFunction serveTodo(ResourceCache *cache, path rootPath) {
-    return [cache, rootPath](ResponsePtr res, RequestPtr req) {
-        DEBUG_PRINT(format("TODO Request: %1%\n") % req->path);
-        auto ret = cache->serveResource(res, (rootPath / "html" / "todo.html").string());
-        if (ret.hasError()) {
-            res->write(StatusCode::client_error_not_found, ret.getError());
-        }
-    };
-}
-#endif
-
 int main() {
     auto rootPath = canonical("assets");
     auto htmlPath = rootPath / "html";
+    auto tmplPath = rootPath / "template";
 
     HttpServer server;
     ResourceCache cache;
@@ -105,13 +103,32 @@ int main() {
     server.resource["^(/[A-Za-z]{5}){1,}(/)?$"]["GET"] = redirect("/"); //hardRedirect(server, "/");
     server.default_resource["GET"] = serveDefault(&cache, rootPath);
 
+    static const map<string, string> defaultConfig{
+        {"urlGithub",   "https://github.com/mogball"},
+        {"urlLinkedIn", "https://linkedin.com/in/jeffniu22"},
+        {"urlInsta",    "https://instagram.com/jeffniu2w"},
+        {"urlRoot",     "/"},
+        {"urlAbout",    "/about"},
+        {"urlProjects", "/projects"},
+        {"urlEmail", "me@jeffniu.com"},
+    };
+
 #ifndef TODO_WIP
-    serveStaticContent(&server, &cache, rootPath, "html");
-    server.resource["/"]["GET"] = serveContent(&cache, htmlPath / "index.html");
-    server.resource["/about"]["GET"] = serveContent(&cache, htmlPath / "about.html");
-    server.resource["/projects"]["GET"] = serveContent(&cache, htmlPath / "portfolio.html");
+    server.resource["/"]        ["GET"] = serveContent(&cache, defaultConfig, tmplPath / "index.tmpl.html",
+        {
+            {"navActive", "1"},
+        });
+    server.resource["/about"]   ["GET"] = serveContent(&cache, defaultConfig, htmlPath / "about.html",
+        {
+            {"navActive", "2"},
+        });
+    server.resource["/projects"]["GET"] = serveContent(&cache, defaultConfig, htmlPath / "portfolio.html",
+        {
+            {"navActive", "3"},
+        });
 #else
-    server.resource["/"]["GET"] = serveContent(&cache, htmlPath / "todo.html");
+    server.resource["/"]["GET"] = serveContent(&cache, defaultConfig, htmlPath / "todo.html",
+        {});
 #endif
 
     server.on_error = [](RequestPtr, const SimpleWeb::error_code &) {};

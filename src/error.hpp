@@ -18,7 +18,7 @@ public:
 
     Expected(bool hasError, std::string msg):
             m_hasError(hasError),
-            m_error(move(msg)) {}
+            m_error(std::move(msg)) {}
 
     bool hasError() const {
         return m_hasError;
@@ -34,6 +34,10 @@ public:
 
     const Ret &get() const {
         return m_ret;
+    }
+
+    Ret &&move() {
+        return std::move(m_ret);
     }
 
 private:
