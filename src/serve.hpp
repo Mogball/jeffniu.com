@@ -17,6 +17,7 @@ class Resource {
     typedef Buffer::iterator BufferIt;
 
     Resource(Timestamp createTime, Timestamp duration, std::size_t size);
+    Resource(Timestamp createTime, Timestamp duration, std::string &&size);
 
     Timestamp m_createTime;
     Timestamp m_duration;

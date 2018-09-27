@@ -54,6 +54,11 @@ Resource::Resource(Timestamp createTime, Timestamp duration, size_t size):
     m_duration(duration),
     m_data(size, 0) {}
 
+Resource::Resource(Timestamp createTime, Timestamp duration, string &&data):
+    m_createTime(createTime),
+    m_duration(duration),
+    m_data(forward<string>(data)) {}
+
 ResourceCache::ResourceCache():
     m_cache(NUM_RESOURCES * 2) {}
 
@@ -69,7 +74,6 @@ Expected<bool> ResourceCache::serveResource(
     if (it != m_cache.end()) {
         Resource &cached = it->second;
         if (cached.m_createTime + cached.m_duration > curTime) {
-            DEBUG_PRINT(format("Used cached value: %1%\n") % resPath);
             header.emplace("Content-Length", to_string(cached.m_data.size()));
             res->write(header);
             readAndSend(res, cached.m_data.begin(), cached.m_data.end());
@@ -88,37 +92,31 @@ Expected<bool> ResourceCache::serveResource(
     size_t numBytes = ifs.tellg();
     ifs.seekg(0, ios::beg);
 
-    Resource newData(curTime, CACHE_TIMEOUT, numBytes);
-    header.emplace("Content-Length", to_string(numBytes));
-    res->write(header);
-
-    streamsize bytesRead = ifs.read(
-        &newData.m_data[0],
-        newData.m_data.capacity()
-    ).gcount();
+    string data(numBytes, 0);
+    streamsize bytesRead = ifs.read(&data[0], data.size()).gcount();
     assert(numBytes == bytesRead);
-    assert(numBytes == newData.m_data.size());
+    assert(numBytes == data.size());
 
     if (ends_with(resPath, "tmpl.html")) {
         DEBUG_PRINT(format("Processing template: %1%\n") % resPath);
-        auto ret = processTemplate(newData.m_data, kv);
+        auto ret = processTemplate(data, kv);
         if (!get<1>(ret).empty()) {
             return {true, get<1>(ret)};
         }
-        string data = move(get<0>(ret));
+        data.~string();
+        ::new(&data) string(move(get<0>(ret)));
         assert(0 == get<0>(ret).size());
-        newData.m_data = data;
     }
+    header.emplace("Content-Length", to_string(data.size()));
+    res->write(header);
 
-    auto pVal = m_cache.emplace(resPath, move(newData));
+    readAndSend(res, data.begin(), data.end());
+    Resource newData(curTime, CACHE_TIMEOUT, move(data));
+    assert(0 == data.size());
+    auto pVal = m_cache.emplace(move(resPath), move(newData));
     assert(true == pVal.second);
     assert(0 == newData.m_data.size());
-    Resource::Buffer &bufferRef = pVal.first->second.m_data;
-
-    if (bytesRead > 0) {
-        readAndSend(res, bufferRef.begin(), bufferRef.end());
-    }
-    ifs.close();
+    Resource::Buffer &bufRef = pVal.first->second.m_data;
     return true;
 }
 
@@ -126,16 +124,16 @@ void ResourceCache::readAndSend(
         const ResponsePtr &res,
         Resource::BufferIt begin,
         Resource::BufferIt end) {
-   auto wrt = min(BUFFER_SIZE, end - begin);
-   res->write(&*begin, min(BUFFER_SIZE, end - begin));
-   begin += wrt;
-   if (begin != end) {
-       res->send([this, res, begin, end](const errcode_t &ec) {
-        if (!ec) {
-            readAndSend(res, begin, end);
-        } else {
-            DEBUG_PRINT("ERROR: Connection interrupted\n");
-        }
-       });
-   }
+    auto wrt = min(BUFFER_SIZE, end - begin);
+    res->write(&*begin, min(BUFFER_SIZE, end - begin));
+    begin += wrt;
+    if (begin != end) {
+        res->send([this, res, begin, end](const errcode_t &ec) {
+            if (!ec) {
+                readAndSend(res, begin, end);
+            } else {
+                DEBUG_PRINT("ERROR: Connection interrupted\n");
+            }
+        });
+    }
 }

@@ -76,6 +76,7 @@ static Expected<bool> recursiveParseIncludes(
         start = end + END_MATCH.size();
         loc += INCLUDE_MATCH.size() + 1;
         string included = tmpl.substr(loc, end - loc);
+        DEBUG_PRINT(format("--> %1%\n") % included);
         auto data = readWholeFile((root / included).string());
         if (true == get<1>(data)) {
             return {true, "Template error: file not found: " + (root / included).string()};
