@@ -1,4 +1,5 @@
 #include "gzip.hpp"
+#include "time.hpp"
 #include "debug.hpp"
 #include "error.hpp"
 #include "serve.hpp"
@@ -6,39 +7,17 @@
 #include "strutil.hpp"
 #include "mimetype.hpp"
 #include "template.hpp"
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 #include <vector>
 #include <fstream>
-#include <chrono>
 
 using namespace std;
 using namespace boost::filesystem;
 
-static constexpr long NUM_RESOURCES = 128;
 static constexpr long BUFFER_SIZE = 1 << 17;
 static constexpr long CACHE_TIMEOUT = 60 * 60 * 1000; // 60 minutes
 
-static long long getTimestamp() {
-    using namespace std::chrono;
-    return duration_cast<milliseconds>(
-            system_clock::now().time_since_epoch()
-    ).count();
-}
-
 static vector<string> s_mimeExts = {"js", "css", "html"};
-
-Resource::Resource(Timestamp createTime, Timestamp duration, size_t size):
-    m_createTime(createTime),
-    m_duration(duration),
-    m_data(size, 0) {}
-
-Resource::Resource(Timestamp createTime, Timestamp duration, string &&data):
-    m_createTime(createTime),
-    m_duration(duration),
-    m_data(forward<string>(data)) {}
-
-ResourceCache::ResourceCache():
-    m_cache(NUM_RESOURCES * 2) {}
 
 Expected<bool> ResourceCache::serveResource(
         const ResponsePtr &res,

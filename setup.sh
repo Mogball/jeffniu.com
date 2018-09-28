@@ -23,3 +23,7 @@ command -v html-minifier > /dev/null 2>&1 || {
     echo "Installing html-minifier"
     sudo npm install html-minifier --global
 }
+command -v purifycss > /dev/null 2>&1 || {
+    echo "Installing purify-css"
+    sudo npm install purify-css --global
+}
