@@ -11,6 +11,10 @@ for loops, if/else constructs, key-value pairs, and including other files.
 
 ```bash
 sudo apt install libboost-all-dev libssl-dev
+sudo apt install clojure1.6
+
+npm install postcss-cli --global
+npm install html-minifier --global
 ```
 
 ## Get Current Port

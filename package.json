@@ -1,0 +1,24 @@
+{
+  "name": "jeffniu.com",
+  "version": "1.0.0",
+  "description": "Website of Jeff Niu",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "cssnano": "^4.1.4",
+    "google-closure-compiler": "^20180910.1.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mogball/jeffniu.com.git"
+  },
+  "author": "Jeff Niu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mogball/jeffniu.com/issues"
+  },
+  "homepage": "https://github.com/mogball/jeffniu.com#readme"
+}
