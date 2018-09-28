@@ -114,15 +114,15 @@ int main() {
     };
 
 #ifndef TODO_WIP
-    server.resource["/"]        ["GET"] = serveContent(&cache, defaultConfig, tmplPath / "index.tmpl.html",
+    server.resource["/"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "index.tmpl.html",
         {
             {"navActive", "1"},
         });
-    server.resource["/about"]   ["GET"] = serveContent(&cache, defaultConfig, htmlPath / "about.html",
+    server.resource["/about"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "about.tmpl.html",
         {
             {"navActive", "2"},
         });
-    server.resource["/projects"]["GET"] = serveContent(&cache, defaultConfig, htmlPath / "portfolio.html",
+    server.resource["/projects"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "portfolio.tmpl.html",
         {
             {"navActive", "3"},
         });
