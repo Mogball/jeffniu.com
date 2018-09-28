@@ -5,7 +5,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 include(cotire/CMake/cotire.cmake)
 add_subdirectory(webserver)
-find_package(Boost 1.53.0 COMPONENTS filesystem)
+find_package(Boost 1.53.0 COMPONENTS filesystem iostreams)
 
 file(GLOB SRCS src/*.cpp)
 file(GLOB HDRS src/*.hpp)

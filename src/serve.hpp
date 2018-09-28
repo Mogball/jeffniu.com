@@ -2,6 +2,7 @@
 
 #include "types.hpp"
 #include "error.hpp"
+#include <boost/filesystem.hpp>
 #include <unordered_map>
 #include <string>
 
@@ -30,7 +31,7 @@ public:
 
     Expected<bool> serveResource(
             const ResponsePtr &res,
-            std::string resPath,
+            boost::filesystem::path resPath,
             const std::map<std::string, std::string> &kv);
 
     ResourceCache(const ResourceCache &) = delete;

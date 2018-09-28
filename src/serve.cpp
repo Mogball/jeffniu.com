@@ -1,8 +1,10 @@
+#include "gzip.hpp"
 #include "debug.hpp"
+#include "error.hpp"
 #include "serve.hpp"
 #include "types.hpp"
-#include "error.hpp"
 #include "strutil.hpp"
+#include "mimetype.hpp"
 #include "template.hpp"
 #include <boost/filesystem.hpp>
 #include <vector>
@@ -10,12 +12,7 @@
 #include <chrono>
 
 using namespace std;
-
-enum MimeType {
-    JS,
-    CSS,
-    HTML
-};
+using namespace boost::filesystem;
 
 static constexpr long NUM_RESOURCES = 128;
 static constexpr long BUFFER_SIZE = 1 << 17;
@@ -29,25 +26,6 @@ static long long getTimestamp() {
 }
 
 static vector<string> s_mimeExts = {"js", "css", "html"};
-
-static string getMimeType(const string &resPath) {
-    size_t loc = resPath.rfind('.');
-    if (string::npos == loc) {
-        return "text/plain";
-    }
-    ++loc;
-    string ext = resPath.substr(loc, resPath.size() - loc);
-    switch (find(s_mimeExts.begin(), s_mimeExts.end(), ext) - s_mimeExts.begin()) {
-        case JS:
-            return "text/javascript";
-        case CSS:
-            return "text/css";
-        case HTML:
-            return "text/html";
-        default:
-            return "text/plain";
-    }
-}
 
 Resource::Resource(Timestamp createTime, Timestamp duration, size_t size):
     m_createTime(createTime),
@@ -64,12 +42,17 @@ ResourceCache::ResourceCache():
 
 Expected<bool> ResourceCache::serveResource(
         const ResponsePtr &res,
-        string resPath,
+        path resource,
         const map<string, string> &kv) {
     Resource::Timestamp curTime = getTimestamp();
+    Mime mimeType(resource);
     Header header;
-    header.emplace("Content-Type", getMimeType(resPath));
+    header.emplace("Content-Type", mimeType.repr());
+    if (mimeType.canGzip()) {
+        header.emplace("Content-Encoding", "gzip");
+    }
 
+    string resPath = resource.string();
     auto it = m_cache.find(resPath);
     if (it != m_cache.end()) {
         Resource &cached = it->second;
@@ -84,6 +67,7 @@ Expected<bool> ResourceCache::serveResource(
         }
     }
 
+    DEBUG_PRINT(format("Loading resource: %1%\n") % resPath);
     ifstream ifs(resPath, ifstream::in | ios::binary | ios::ate);
     if (!ifs) {
         return {true, "ERROR: could not read file: " + resPath};
@@ -98,14 +82,20 @@ Expected<bool> ResourceCache::serveResource(
     assert(numBytes == data.size());
 
     if (ends_with(resPath, "tmpl.html")) {
-        DEBUG_PRINT(format("Processing template: %1%\n") % resPath);
+        DEBUG_PRINT("Processing template ...\n");
         auto ret = processTemplate(data, kv);
         if (!get<1>(ret).empty()) {
             return {true, get<1>(ret)};
         }
-        data.~string();
-        ::new(&data) string(move(get<0>(ret)));
+        force_move(data, get<0>(ret));
         assert(0 == get<0>(ret).size());
+    }
+    if (mimeType.canGzip()) {
+        string gzipped = compress(data);
+        DEBUG_PRINT(format("Compression %1%\n")
+                % (100.0 * gzipped.size() / data.size()));
+        force_move(data, gzipped);
+        assert(0 == gzipped.size());
     }
     header.emplace("Content-Length", to_string(data.size()));
     res->write(header);

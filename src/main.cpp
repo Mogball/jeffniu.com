@@ -27,7 +27,7 @@ static ServeFunction serveContent(
     map<string, string> kv(config);
     kv.insert(defaultConfig.begin(), defaultConfig.end());
     return [kv, cache, resPath](ResponsePtr res, RequestPtr req) {
-        auto ret = cache->serveResource(res, resPath.string(), kv);
+        auto ret = cache->serveResource(res, resPath, kv);
         if (ret.hasError()) {
             res->write(StatusCode::client_error_not_found, ret.getError());
         }
@@ -39,7 +39,7 @@ static void serveStaticContent(HttpServer *server, ResourceCache *cache, path ro
     server->resource["^/([0-9A-Za-z-_]*)\\." + ext]["GET"] = [cache, rootPath, ext](ResponsePtr res, RequestPtr req) {
         auto file = req->path_match[1].str() + "." + ext;
         auto resPath = rootPath / ext / file;
-        auto ret = cache->serveResource(res, resPath.string(), kv);
+        auto ret = cache->serveResource(res, resPath, kv);
         if (ret.hasError()) {
             DEBUG_PRINT(format("ERROR - Static content 404 [%1%]: %2%\n") % ext % resPath);
             res->write(StatusCode::client_error_not_found, ret.getError());
@@ -76,13 +76,15 @@ static ServeFunction serveDefault(ResourceCache *cache, path rootPath) {
             resPath /= "index.html";
         }
 
-        auto ret = cache->serveResource(res, resPath.string(), kv);
+        auto ret = cache->serveResource(res, resPath, kv);
         if (ret.hasError()) {
             DEBUG_PRINT(format("ERROR - Path 404: %1%\n") % resPath);
             res->write(StatusCode::client_error_not_found, ret.getError());
         }
     };
 }
+
+#include "gzip.hpp"
 
 int main() {
     auto rootPath = canonical("assets");
@@ -97,7 +99,7 @@ int main() {
 
     serveStaticContent(&server, &cache, rootPath, "css");
     serveStaticContent(&server, &cache, rootPath, "js");
-    serveStaticContent(&server, &cache, rootPath, "jpg");
+    serveStaticContent(&server, &cache, rootPath, "jpeg");
     serveStaticContent(&server, &cache, rootPath, "png");
     serveStaticContent(&server, &cache, rootPath, "ico");
     server.resource["^(/[A-Za-z]{5}){1,}(/)?$"]["GET"] = redirect("/"); //hardRedirect(server, "/");
@@ -111,6 +113,8 @@ int main() {
         {"urlAbout",    "/about"},
         {"urlProjects", "/projects"},
         {"urlEmail", "me@jeffniu.com"},
+
+        {"urlPhImg", "https://spacergif.org/spacer.gif"},
     };
 
 #ifndef TODO_WIP
