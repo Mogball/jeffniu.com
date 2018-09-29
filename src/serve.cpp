@@ -23,6 +23,10 @@ Expected<bool> ResourceCache::serveResource(
         const ResponsePtr &res,
         path resource,
         const map<string, string> &kv) {
+    if (!exists(resource)) {
+        return {true, "Path does not exist"};
+    }
+
     Resource::Timestamp curTime = getTimestamp();
     Mime mimeType(resource);
     Header header;

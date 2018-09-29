@@ -1,7 +1,6 @@
-#include "serve.hpp"
 #include "debug.hpp"
+#include "serve.hpp"
 #include "request.hpp"
-#include <server_http.hpp>
 #include <boost/filesystem.hpp>
 
 using namespace std;
@@ -23,6 +22,7 @@ int main() {
     serveStaticContent(&server, &cache, rootPath, "jpeg");
     serveStaticContent(&server, &cache, rootPath, "png");
     serveStaticContent(&server, &cache, rootPath, "ico");
+    serveStaticContent(&server, &cache, rootPath, "pdf");
     server.resource["^(/[A-Za-z]{5}){1,}(/)?$"]["GET"] = redirect("/"); //hardRedirect(server, "/");
     server.default_resource["GET"] = serveDefault(&cache, rootPath);
 
@@ -42,20 +42,14 @@ int main() {
 
 #ifndef TODO_WIP
     server.resource["/"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "index.tmpl.html",
-        {
-            {"navActive", "1"},
-        });
+        {{"navActive", "1"}});
     server.resource["/about"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "about.tmpl.html",
-        {
-            {"navActive", "2"},
-        });
+        {{"navActive", "2"}});
     server.resource["/projects"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "portfolio.tmpl.html",
-        {
-            {"navActive", "3"},
-        });
+        {{"navActive", "3"}});
+    server.resource["/superset"]["GET"] = serveContent(&cache, defaultConfig, tmplPath / "superset.tmpl.html", {});
 #else
-    server.resource["/"]["GET"] = serveContent(&cache, defaultConfig, htmlPath / "todo.html",
-        {});
+    server.resource["/"]["GET"] = serveContent(&cache, defaultConfig, htmlPath / "todo.html", {});
 #endif
 
     server.on_error = [](RequestPtr, const SimpleWeb::error_code &) {};

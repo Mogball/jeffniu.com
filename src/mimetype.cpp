@@ -20,6 +20,8 @@ static vector<string> s_extNames = {
     ".woff2",
     ".ttf",
     ".eot",
+
+    ".pdf",
 };
 
 static vector<string> s_mimeTypes = {
@@ -36,6 +38,8 @@ static vector<string> s_mimeTypes = {
     "application/font-woff2",
     "application/x-font-ttf",
     "application/vnd.ms-fontobject",
+
+    "application/pdf",
 };
 
 static Mime::Type getExtensionType(const Mime::Path &path) {
