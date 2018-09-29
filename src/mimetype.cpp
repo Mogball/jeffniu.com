@@ -41,7 +41,6 @@ static vector<string> s_mimeTypes = {
 static Mime::Type getExtensionType(const Mime::Path &path) {
     auto it = find(s_extNames.begin(), s_extNames.end(), path.extension());
     auto index = it - s_extNames.begin();
-    assert(0 <= index && index < Mime::Type::UNKNOWN && "Invalid MIME type");
     return static_cast<Mime::Type>(index);
 }
 
